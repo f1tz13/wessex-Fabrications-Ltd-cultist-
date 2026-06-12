@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wessex Fabrications — Cutting List Optimiser</title>
+<style>
+  :root {
+    --steel: #1a2a3a;
+    --steel-mid: #2c3e50;
+    --steel-light: #3d5166;
+    --spark: #f39c12;
+    --spark-dim: #c0780a;
+    --cut: #e74c3c;
+    --good: #27ae60;
+    --bg: #0f1923;
+    --panel: #16232f;
+    --panel2: #1e2f3e;
+    --border: #2a3d52;
+    --text: #d4e0ea;
+    --muted: #7a9ab5;
+    --white: #eaf2f8;
+    --radius: 8px;
+    --font: 'Segoe UI', system-ui, sans-serif;
+    --mono: 'Courier New', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 15px;
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--steel);
+    border-bottom: 3px solid var(--spark);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .logo-mark {
+    width: 42px; height: 42px;
+    background: var(--spark);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; color: var(--steel); font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  header h1 { font-size: 18px; font-weight: 700; color: var(--white); letter-spacing: 0.5px; }
+  header p { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .main { padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .card-header {
+    background: var(--panel2);
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .card-header h2 {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--spark);
+  }
+
+  .card-body { padding: 14px 16px; }
+
+  label {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  input[type="text"], input[type="number"], select {
+    width: 100%;
+    background: var(--steel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--white);
+    padding: 10px 12px;
+    font-size: 15px;
+    font-family: var(--font);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  input:focus, select:focus { border-color: var(--spark); }
+
+  .row { display: flex; gap: 10px; margin-bottom: 12px; }
+  .row .field { flex: 1; }
+  .row .field-sm { flex: 0 0 90px; }
+  .row .field-xs { flex: 0 0 70px; }
+
+  button {
+    cursor: pointer;
+    border: none;
+    border-radius: 6px;
+    font-family: var(--font);
+    font-weight: 700;
+    transition: all 0.15s;
+  }
+
+  .btn-add {
+    background: var(--spark);
+    color: var(--steel);
+    padding: 10px 16px;
+    font-size: 14px;
+    width: 100%;
+    margin-top: 4px;
+  }
+  .btn-add:hover { background: #e6900a; }
+
+  .btn-run {
+    background: var(--spark);
+    color: var(--steel);
+    padding: 14px;
+    font-size: 16px;
+    font-weight: 900;
+    width: 100%;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .btn-run:hover { background: #e6900a; transform: translateY(-1px); }
+  .btn-run:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .btn-remove {
+    background: rgba(231,76,60,0.15);
+    color: var(--cut);
+    border: 1px solid rgba(231,76,60,0.3);
+    padding: 8px 10px;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .btn-remove:hover { background: rgba(231,76,60,0.3); }
+
+  .btn-clear {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  .btn-clear:hover { color: var(--cut); border-color: var(--cut); }
+
+  .item-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+
+  .item-row {
+    background: var(--steel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .item-row .item-info { flex: 1; font-size: 13px; line-height: 1.5; }
+  .item-row .item-name { color: var(--white); font-weight: 600; }
+  .item-row .item-sub { color: var(--muted); font-size: 12px; }
+
+  .badge {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+
+  .kerf-note {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 10px;
+    padding: 8px 12px;
+    background: var(--steel);
+    border-radius: 6px;
+    border-left: 3px solid var(--spark);
+  }
+
+  /* Results */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .stat-box {
+    background: var(--steel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    text-align: center;
+  }
+
+  .stat-val {
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--white);
+    font-family: var(--mono);
+  }
+
+  .stat-val.good { color: var(--good); }
+  .stat-val.warn { color: var(--spark); }
+  .stat-val.bad  { color: var(--cut); }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 3px;
+  }
+
+  .bar-card {
+    background: var(--steel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+
+  .bar-header {
+    background: var(--panel2);
+    padding: 8px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .bar-title { font-weight: 700; font-size: 13px; color: var(--white); }
+  .bar-waste { font-size: 12px; color: var(--muted); }
+
+  .bar-visual {
+    height: 28px;
+    display: flex;
+    margin: 10px 12px 6px;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .seg {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    overflow: hidden;
+    transition: opacity 0.1s;
+    cursor: default;
+  }
+
+  .seg-cut { background: var(--spark); color: var(--steel); }
+  .seg-kerf { background: var(--cut); opacity: 0.7; }
+  .seg-waste { background: var(--border); color: var(--muted); }
+
+  .cuts-list {
+    padding: 6px 12px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .cut-line {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--muted);
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .cut-line .cut-id { color: var(--spark); font-weight: 700; font-family: var(--mono); }
+  .cut-line .cut-mm { color: var(--white); font-family: var(--mono); }
+
+  .waste-tag {
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-weight: 700;
+  }
+  .waste-good { background: rgba(39,174,96,0.2); color: var(--good); }
+  .waste-warn { background: rgba(243,156,18,0.2); color: var(--spark); }
+  .waste-bad  { background: rgba(231,76,60,0.2); color: var(--cut); }
+
+  .empty-state {
+    text-align: center;
+    padding: 30px 20px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .empty-state .icon { font-size: 36px; margin-bottom: 8px; }
+
+  .section-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 4px 0 10px;
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .section-divider::before, .section-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .tooltip-box {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 10px;
+  }
+
+  select option { background: var(--steel-mid); }
+
+  @media (max-width: 400px) {
+    .row { flex-wrap: wrap; }
+    .row .field-sm, .row .field-xs { flex: 1 1 80px; }
+  }
+
+  /* Import */
+  .tab-bar {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab {
+    flex: 1;
+    padding: 10px 6px;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: center;
+    cursor: pointer;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: none;
+    border-radius: 0;
+  }
+  .tab.active { color: var(--spark); border-bottom-color: var(--spark); }
+  .tab-panel { display: none; padding: 14px 16px; }
+  .tab-panel.active { display: block; }
+
+  textarea {
+    width: 100%;
+    background: var(--steel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--white);
+    padding: 10px 12px;
+    font-size: 13px;
+    font-family: var(--mono);
+    outline: none;
+    resize: vertical;
+    min-height: 130px;
+    line-height: 1.6;
+  }
+  textarea:focus { border-color: var(--spark); }
+  textarea::placeholder { color: var(--muted); font-family: var(--mono); }
+
+  .format-hint {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+  .format-hint code {
+    background: var(--steel);
+    color: var(--spark);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    padding: 24px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-bottom: 10px;
+    position: relative;
+  }
+  .drop-zone:hover, .drop-zone.dragover { border-color: var(--spark); background: rgba(243,156,18,0.05); }
+  .drop-zone input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .drop-zone .dz-icon { font-size: 28px; margin-bottom: 6px; }
+  .drop-zone .dz-text { font-size: 13px; color: var(--muted); }
+  .drop-zone .dz-sub { font-size: 11px; color: var(--border); margin-top: 3px; }
+
+  .parse-preview {
+    background: var(--steel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--muted);
+    display: none;
+  }
+  .parse-preview.show { display: block; }
+  .parse-ok { color: var(--good); }
+  .parse-err { color: var(--cut); }
+
+  .btn-import {
+    background: var(--good);
+    color: #fff;
+    padding: 11px 16px;
+    font-size: 14px;
+    width: 100%;
+    margin-top: 8px;
+  }
+  .btn-import:hover { background: #219a52; }
+  .btn-import:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .ai-badge {
+    background: linear-gradient(135deg, #9b59b6, #3498db);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 900;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+    vertical-align: middle;
+    margin-left: 4px;
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .btn-print {
+    background: var(--steel-mid);
+    color: var(--white);
+    border: 1px solid var(--border);
+    padding: 12px 16px;
+    font-size: 14px;
+    width: 100%;
+    margin-top: 14px;
+    letter-spacing: 0.3px;
+  }
+  .btn-print:hover { background: var(--steel-light); }
+
+  @media print {
+    * { box-sizing: border-box; }
+    body { background: #fff !important; color: #111 !important; font-family: Arial, sans-serif; font-size: 11pt; margin: 0; padding: 0; }
+    body > * { display: none !important; }
+    #printSheet { display: block !important; }
+    #printSheet { padding: 14mm 12mm; width: 100%; }
+    .ps-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #111; padding-bottom: 8px; margin-bottom: 12px; }
+    .ps-logo { font-size: 18pt; font-weight: 900; letter-spacing: 1px; }
+    .ps-sub  { font-size: 9pt; color: #555; margin-top: 2px; }
+    .ps-meta { text-align: right; font-size: 9pt; color: #555; }
+    .ps-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+    .ps-stat { border: 1px solid #ccc; border-radius: 4px; padding: 7px 10px; text-align: center; }
+    .ps-stat-val { font-size: 16pt; font-weight: 900; }
+    .ps-stat-lbl { font-size: 8pt; color: #666; text-transform: uppercase; }
+    .ps-bar-block { border: 1px solid #ccc; border-radius: 4px; margin-bottom: 8px; page-break-inside: avoid; overflow: hidden; }
+    .ps-bar-head { background: #f0f0f0; padding: 5px 10px; display: flex; justify-content: space-between; font-weight: 700; font-size: 10pt; border-bottom: 1px solid #ccc; }
+    .ps-bar-visual { height: 18px; display: flex; margin: 6px 10px 4px; border: 1px solid #ddd; border-radius: 3px; overflow: hidden; }
+    .ps-seg-cut   { background: #f39c12; height: 100%; }
+    .ps-seg-kerf  { background: #e74c3c; height: 100%; opacity: 0.6; }
+    .ps-seg-waste { background: #ddd; height: 100%; }
+    .ps-cuts-table { width: calc(100% - 20px); margin: 0 10px 8px; border-collapse: collapse; font-size: 9.5pt; }
+    .ps-cuts-table th { text-align: left; border-bottom: 1px solid #ccc; padding: 3px 6px; font-size: 8pt; text-transform: uppercase; color: #666; }
+    .ps-cuts-table td { padding: 3px 6px; border-bottom: 1px solid #eee; }
+    .ps-footer { margin-top: 16px; border-top: 1px solid #ccc; padding-top: 6px; font-size: 8pt; color: #999; display: flex; justify-content: space-between; }
+  }
+
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">W</div>
+  <div>
+    <h1>Cutting List Optimiser</h1>
+    <p>Wessex Fabrications Ltd — Minimise off-cut waste</p>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- Stock Section -->
+  <div class="card">
+    <div class="card-header">
+      <h2>📦 Stock Length</h2>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="field">
+          <label>Section / Profile</label>
+          <input type="text" id="stockSection" placeholder="e.g. SHS 50×50×3" />
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Length (mm)</label>
+          <input type="number" id="stockLength" placeholder="6200" value="6200" min="100" />
+        </div>
+        <div class="field-sm">
+          <label>Qty</label>
+          <input type="number" id="stockQty" placeholder="∞" min="1" title="Leave blank = unlimited stock" />
+        </div>
+      </div>
+      <div class="kerf-note">
+        ⚙️ Saw kerf (blade width):&nbsp;
+        <select id="kerfSelect" style="width:auto;display:inline-block;padding:3px 6px;font-size:13px;">
+          <option value="3">3mm — Angle grinder</option>
+          <option value="4" selected>4mm — Cold saw / bandsaw</option>
+          <option value="6">6mm — Abrasive disc</option>
+          <option value="0">0mm — No kerf</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk Import Card -->
+  <div class="card">
+    <div class="card-header">
+      <h2>📥 Bulk Import</h2>
+    </div>
+    <div class="tab-bar">
+      <button class="tab active" onclick="switchTab('paste')">Paste Text</button>
+      <button class="tab" onclick="switchTab('file')">CSV / File</button>
+      <button class="tab" onclick="switchTab('photo')">Photo <span class="ai-badge">AI</span></button>
+    </div>
+
+    <!-- Paste Tab -->
+    <div class="tab-panel active" id="tab-paste">
+      <div class="format-hint">
+        One cut per line. Accepted formats:<br>
+        <code>1200</code> &nbsp;·&nbsp; <code>1200 x 4</code> &nbsp;·&nbsp; <code>Top rail, 1200, 4</code><br>
+        <code>1200mm x4 Top rail</code> &nbsp;·&nbsp; <code>1200 4 Top rail</code>
+      </div>
+      <textarea id="pasteInput" placeholder="1200 x 4&#10;800 x 6 Bottom rail&#10;450, 2, Diagonal brace&#10;2100&#10;600 x 3"></textarea>
+      <div class="parse-preview" id="pastePrev"></div>
+      <button class="btn-import" id="pasteImportBtn" onclick="importPaste()" disabled>+ Add to Cut List</button>
+    </div>
+
+    <!-- File Tab -->
+    <div class="tab-panel" id="tab-file">
+      <div class="format-hint">
+        Upload a <code>.csv</code>, <code>.txt</code>, or <code>.xlsx</code>-exported-as-csv file.<br>
+        Columns: <code>Label, Length, Qty</code> or <code>Length, Qty</code> (header row optional).
+      </div>
+      <div class="drop-zone" id="dropZone">
+        <input type="file" id="fileInput" accept=".csv,.txt,.tsv" onchange="handleFileUpload(this.files[0])">
+        <div class="dz-icon">📂</div>
+        <div class="dz-text">Tap to choose a file</div>
+        <div class="dz-sub">CSV, TXT, TSV — exported from Excel or Notes</div>
+      </div>
+      <div class="parse-preview" id="filePrev"></div>
+      <button class="btn-import" id="fileImportBtn" onclick="importFile()" disabled>+ Add to Cut List</button>
+    </div>
+
+    <!-- Photo Tab -->
+    <div class="tab-panel" id="tab-photo">
+      <div class="format-hint">
+        Take a photo of a hand-written cutting list, printed schedule, or drawing dimension table. AI will read the lengths and quantities automatically.
+      </div>
+      <div class="drop-zone" id="photoZone">
+        <input type="file" id="photoInput" accept="image/*" capture="environment" onchange="handlePhotoUpload(this.files[0])">
+        <div class="dz-icon">📷</div>
+        <div class="dz-text">Tap to take or upload a photo</div>
+        <div class="dz-sub">JPG, PNG — cutting list, drawing, or written notes</div>
+      </div>
+      <div class="parse-preview" id="photoPrev"></div>
+      <button class="btn-import" id="photoImportBtn" onclick="importPhoto()" disabled>+ Add to Cut List</button>
+    </div>
+  </div>
+
+  <!-- Cuts Section -->
+  <div class="card">
+    <div class="card-header">
+      <h2>✂️ Required Cuts</h2>
+      <button class="btn-clear" onclick="clearCuts()">Clear all</button>
+    </div>
+    <div class="card-body">
+      <div class="section-divider">Add a cut</div>
+      <div class="row">
+        <div class="field">
+          <label>Length (mm)</label>
+          <input type="number" id="cutLength" placeholder="e.g. 1200" min="1" />
+        </div>
+        <div class="field-xs">
+          <label>Qty</label>
+          <input type="number" id="cutQty" placeholder="1" value="1" min="1" />
+        </div>
+        <div class="field">
+          <label>Label (optional)</label>
+          <input type="text" id="cutLabel" placeholder="e.g. Top rail" />
+        </div>
+      </div>
+      <button class="btn-add" onclick="addCut()">+ Add Cut</button>
+
+      <div class="item-list" id="cutList"></div>
+    </div>
+  </div>
+
+  <!-- Run -->
+  <button class="btn-run" id="runBtn" onclick="optimise()" disabled>
+    ⚡ Optimise Cutting List
+  </button>
+
+  <!-- Results -->
+  <div id="resultsSection" style="display:none;">
+    <div class="card">
+      <div class="card-header">
+        <h2>📊 Results</h2>
+        <span id="resultProfile" style="font-size:12px;color:var(--muted);"></span>
+      </div>
+      <div class="card-body">
+        <div class="summary-grid" id="summaryGrid"></div>
+        <div id="barsContainer"></div>
+        <button class="btn-print" onclick="printSheet()">🖨️ Print / Save as PDF</button>
+      </div>
+    </div>
+  </div>
+
+<!-- Hidden Print Sheet -->
+<div id="printSheet" style="display:none;"></div>
+</div>
+
+<script>
+// ─── State ───────────────────────────────────────────────
+let cuts = [];
+let cutIdCounter = 1;
+let lastBars = [];
+
+// ─── Add / Remove Cuts ───────────────────────────────────
+function addCut() {
+  const len = parseInt(document.getElementById('cutLength').value);
+  const qty = parseInt(document.getElementById('cutQty').value) || 1;
+  const label = document.getElementById('cutLabel').value.trim() || `Cut ${cutIdCounter}`;
+
+  const stockLen = parseInt(document.getElementById('stockLength').value) || 6200;
+  if (!len || len < 1) { alert('Enter a valid cut length.'); return; }
+  if (len > stockLen) { alert(`Cut length (${len}mm) exceeds stock length (${stockLen}mm).`); return; }
+
+  cuts.push({ id: cutIdCounter++, len, qty, label });
+  renderCutList();
+  document.getElementById('cutLength').value = '';
+  document.getElementById('cutQty').value = '1';
+  document.getElementById('cutLabel').value = '';
+  document.getElementById('cutLength').focus();
+  updateRunBtn();
+}
+
+document.getElementById('cutLength').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addCut();
+});
+
+function removeCut(id) {
+  cuts = cuts.filter(c => c.id !== id);
+  renderCutList();
+  updateRunBtn();
+}
+
+function clearCuts() {
+  if (cuts.length && !confirm('Clear all cuts?')) return;
+  cuts = [];
+  renderCutList();
+  updateRunBtn();
+  document.getElementById('resultsSection').style.display = 'none';
+}
+
+function renderCutList() {
+  const el = document.getElementById('cutList');
+  if (!cuts.length) { el.innerHTML = ''; return; }
+  el.innerHTML = cuts.map(c => `
+    <div class="item-row">
+      <div class="item-info">
+        <div class="item-name">${escHtml(c.label)}</div>
+        <div class="item-sub">${fmt(c.len)} mm</div>
+      </div>
+      <span class="badge">×${c.qty}</span>
+      <button class="btn-remove" onclick="removeCut(${c.id})">✕</button>
+    </div>
+  `).join('');
+}
+
+function updateRunBtn() {
+  document.getElementById('runBtn').disabled = cuts.length === 0;
+}
+
+// ─── Optimiser (First Fit Decreasing bin packing) ────────
+function optimise() {
+  const stockLen = parseInt(document.getElementById('stockLength').value) || 6200;
+  const stockQtyLimit = parseInt(document.getElementById('stockQty').value) || Infinity;
+  const kerf = parseInt(document.getElementById('kerfSelect').value);
+  const section = document.getElementById('stockSection').value.trim() || 'Stock';
+
+  // Expand all cut quantities into individual pieces
+  let pieces = [];
+  cuts.forEach(c => {
+    for (let i = 0; i < c.qty; i++) {
+      pieces.push({ label: c.label, len: c.len, origId: c.id });
+    }
+  });
+
+  // Sort descending (FFD heuristic)
+  pieces.sort((a, b) => b.len - a.len);
+
+  const bars = []; // each: { remaining, cuts: [{label, len}] }
+
+  for (const piece of pieces) {
+    const needed = piece.len + kerf; // add kerf for each cut (last piece on bar has no kerf but conservative)
+    let placed = false;
+
+    for (const bar of bars) {
+      // Use piece.len + kerf, except if it's the only piece that'll fit (last) we still allow it
+      const spaceNeeded = piece.len + (bar.cuts.length > 0 ? kerf : 0);
+      if (bar.remaining >= spaceNeeded) {
+        const actualKerf = bar.cuts.length > 0 ? kerf : 0;
+        bar.remaining -= (piece.len + actualKerf);
+        bar.cuts.push({ label: piece.label, len: piece.len, kerf: actualKerf });
+        placed = true;
+        break;
+      }
+    }
+
+    if (!placed) {
+      if (bars.length >= stockQtyLimit) {
+        alert(`⚠️ Not enough stock bars! You've limited to ${stockQtyLimit} bar(s) but more are needed.`);
+        return;
+      }
+      const newBar = { remaining: stockLen - piece.len, cuts: [{ label: piece.label, len: piece.len, kerf: 0 }] };
+      bars.push(newBar);
+    }
+  }
+
+  lastBars = bars;
+  renderResults(bars, stockLen, kerf, section);
+}
+
+// ─── Render Results ───────────────────────────────────────
+function renderResults(bars, stockLen, kerf, section) {
+  const totalBars = bars.length;
+  const totalStock = totalBars * stockLen;
+  const totalUsed = bars.reduce((sum, b) => sum + (stockLen - b.remaining), 0);
+  const totalWaste = totalStock - totalUsed;
+  const wastePercent = ((totalWaste / totalStock) * 100).toFixed(1);
+  const efficiency = (100 - parseFloat(wastePercent)).toFixed(1);
+
+  document.getElementById('resultProfile').textContent = section;
+
+  // Summary
+  const effClass = efficiency >= 90 ? 'good' : efficiency >= 75 ? 'warn' : 'bad';
+  document.getElementById('summaryGrid').innerHTML = `
+    <div class="stat-box">
+      <div class="stat-val">${totalBars}</div>
+      <div class="stat-label">Bars required</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val ${effClass}">${efficiency}%</div>
+      <div class="stat-label">Efficiency</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val">${fmt(totalUsed)}</div>
+      <div class="stat-label">Material used (mm)</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val ${wastePercent <= 10 ? 'good' : wastePercent <= 25 ? 'warn' : 'bad'}">${fmt(totalWaste)}</div>
+      <div class="stat-label">Total waste (mm)</div>
+    </div>
+  `;
+
+  // Per-bar breakdown
+  const container = document.getElementById('barsContainer');
+  const colours = ['#f39c12','#e67e22','#e74c3c','#9b59b6','#3498db','#1abc9c','#2ecc71','#f1c40f'];
+
+  container.innerHTML = bars.map((bar, i) => {
+    const wasteLen = bar.remaining;
+    const wastePct = ((wasteLen / stockLen) * 100).toFixed(1);
+    const wasteClass = wastePct <= 5 ? 'waste-good' : wastePct <= 20 ? 'waste-warn' : 'waste-bad';
+
+    // Visual bar segments
+    let segs = '';
+    bar.cuts.forEach((cut, ci) => {
+      const pct = (cut.len / stockLen * 100).toFixed(2);
+      const col = colours[ci % colours.length];
+      const label = pct > 6 ? `${cut.len}` : '';
+      if (cut.kerf > 0) {
+        const kpct = (cut.kerf / stockLen * 100).toFixed(2);
+        segs += `<div class="seg seg-kerf" style="width:${kpct}%" title="Kerf ${cut.kerf}mm"></div>`;
+      }
+      segs += `<div class="seg seg-cut" style="width:${pct}%;background:${col};color:#0f1923;" title="${cut.label}: ${cut.len}mm">${label}</div>`;
+    });
+    if (wasteLen > 0) {
+      const wpct = (wasteLen / stockLen * 100).toFixed(2);
+      const wlabel = wpct > 6 ? `${wasteLen}mm` : '';
+      segs += `<div class="seg seg-waste" style="width:${wpct}%;" title="Off-cut: ${wasteLen}mm">${wlabel}</div>`;
+    }
+
+    const cutLines = bar.cuts.map(cut =>
+      `<div class="cut-line">
+        <span>${escHtml(cut.label)}</span>
+        <span class="cut-mm">${fmt(cut.len)} mm</span>
+      </div>`
+    ).join('');
+
+    return `
+      <div class="bar-card">
+        <div class="bar-header">
+          <span class="bar-title">Bar ${i + 1} — ${fmt(stockLen)}mm</span>
+          <span class="bar-waste">Off-cut: <span class="waste-tag ${wasteClass}">${fmt(wasteLen)}mm (${wastePct}%)</span></span>
+        </div>
+        <div class="bar-visual">${segs}</div>
+        <div class="cuts-list">${cutLines}</div>
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('resultsSection').style.display = 'block';
+  document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ─── Tab Switching ────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    const names = ['paste','file','photo'];
+    t.classList.toggle('active', names[i] === name);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+// ─── Parsed staging area ──────────────────────────────────
+let stagedPaste = [], stagedFile = [], stagedPhoto = [];
+
+// ─── Parse text into cuts ─────────────────────────────────
+function parseLines(text) {
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const results = [], errors = [];
+
+  lines.forEach((line, i) => {
+    // Strip common units
+    let l = line.replace(/mm/gi,'').replace(/\s+/g,' ').trim();
+
+    // Try various patterns
+    let len, qty, label;
+
+    // Pattern: "Label, length, qty" or "Label, length"
+    const csvParts = l.split(/,/).map(s => s.trim());
+    if (csvParts.length >= 2) {
+      // Try label first
+      const nums = csvParts.map(p => parseFloat(p.replace(/[^\d.]/g,''))).filter(n => !isNaN(n) && n > 0);
+      if (nums.length >= 2) {
+        // first num is length, second is qty (or vice versa depending on size)
+        len = nums[0]; qty = Math.round(nums[1]);
+        label = csvParts.find(p => isNaN(parseFloat(p.replace(/[^\d.]/g,'')))) || `Import ${cutIdCounter + results.length}`;
+      } else if (nums.length === 1) {
+        len = nums[0]; qty = 1;
+        label = csvParts.find(p => isNaN(parseFloat(p.replace(/[^\d.]/g,'')))) || `Cut`;
+      }
+    }
+
+    if (!len) {
+      // Pattern: number x number [label] or number × number
+      const mxQty = l.match(/^(\d+(?:\.\d+)?)\s*[xX×]\s*(\d+)\s*(.*)?$/);
+      if (mxQty) { len = parseFloat(mxQty[1]); qty = parseInt(mxQty[2]); label = mxQty[3]?.trim(); }
+    }
+    if (!len) {
+      // Pattern: number [qty] [label]
+      const mSpaced = l.match(/^(\d+(?:\.\d+)?)\s+(\d+)\s*(.*)?$/);
+      if (mSpaced && parseInt(mSpaced[2]) <= 9999) { len = parseFloat(mSpaced[1]); qty = parseInt(mSpaced[2]); label = mSpaced[3]?.trim(); }
+    }
+    if (!len) {
+      // Just a number
+      const mNum = l.match(/^(\d+(?:\.\d+)?)(.*)$/);
+      if (mNum) { len = parseFloat(mNum[1]); qty = 1; label = mNum[2]?.trim(); }
+    }
+
+    if (len && len > 0) {
+      results.push({
+        id: null,
+        len: Math.round(len),
+        qty: qty || 1,
+        label: label || `Cut ${results.length + 1}`
+      });
+    } else {
+      errors.push(`Line ${i+1}: "${line}"`);
+    }
+  });
+
+  return { results, errors };
+}
+
+// ─── Paste Tab ────────────────────────────────────────────
+document.getElementById('pasteInput').addEventListener('input', function() {
+  const { results, errors } = parseLines(this.value);
+  stagedPaste = results;
+  const prev = document.getElementById('pastePrev');
+  const btn = document.getElementById('pasteImportBtn');
+  if (!this.value.trim()) { prev.classList.remove('show'); btn.disabled = true; return; }
+  prev.classList.add('show');
+  prev.innerHTML = results.length
+    ? `<span class="parse-ok">✓ ${results.length} cut${results.length>1?'s':''} found</span>` + (errors.length ? ` &nbsp;<span class="parse-err">· ${errors.length} line${errors.length>1?'s':''} skipped</span>` : '')
+    : `<span class="parse-err">✗ No cuts recognised. Check format above.</span>`;
+  btn.disabled = results.length === 0;
+});
+
+function importPaste() {
+  addStaged(stagedPaste);
+  document.getElementById('pasteInput').value = '';
+  document.getElementById('pastePrev').classList.remove('show');
+  document.getElementById('pasteImportBtn').disabled = true;
+  stagedPaste = [];
+}
+
+// ─── File Tab ─────────────────────────────────────────────
+let fileText = '';
+function handleFileUpload(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    fileText = e.target.result;
+    const { results, errors } = parseLines(fileText);
+    stagedFile = results;
+    const prev = document.getElementById('filePrev');
+    prev.classList.add('show');
+    prev.innerHTML = results.length
+      ? `<span class="parse-ok">✓ ${results.length} cut${results.length>1?'s':''} found in "${file.name}"</span>` + (errors.length ? ` <span class="parse-err">· ${errors.length} skipped</span>` : '')
+      : `<span class="parse-err">✗ Couldn't parse "${file.name}". Try CSV format.</span>`;
+    document.getElementById('fileImportBtn').disabled = results.length === 0;
+  };
+  reader.readAsText(file);
+}
+
+function importFile() {
+  addStaged(stagedFile);
+  document.getElementById('filePrev').innerHTML = '';
+  document.getElementById('filePrev').classList.remove('show');
+  document.getElementById('fileImportBtn').disabled = true;
+  document.getElementById('fileInput').value = '';
+  stagedFile = [];
+}
+
+// ─── Photo / AI Tab ───────────────────────────────────────
+let photoBase64 = '', photoMime = '';
+function handlePhotoUpload(file) {
+  if (!file) return;
+  photoMime = file.type || 'image/jpeg';
+  const reader = new FileReader();
+  reader.onload = e => {
+    photoBase64 = e.target.result.split(',')[1];
+    const prev = document.getElementById('photoPrev');
+    prev.classList.add('show');
+    prev.innerHTML = `<span class="parse-ok">✓ Photo loaded: "${file.name}" — tap "Scan with AI" to read cuts</span>`;
+    document.getElementById('photoImportBtn').textContent = '🔍 Scan with AI';
+    document.getElementById('photoImportBtn').disabled = false;
+    document.getElementById('photoImportBtn').onclick = scanPhoto;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function scanPhoto() {
+  const btn = document.getElementById('photoImportBtn');
+  const prev = document.getElementById('photoPrev');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Reading with AI…';
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: { type: 'base64', media_type: photoMime, data: photoBase64 }
+            },
+            {
+              type: 'text',
+              text: `This is a cutting list or fabrication schedule. Extract ALL cut lengths and quantities from it.
+Respond ONLY with a plain text list, one cut per line, in this exact format: LENGTH x QTY LABEL
+For example:
+1200 x 4 Top rail
+800 x 2 Side member
+450 x 1
+If no label is visible just output length x qty. Use millimetres. If dimensions appear to be in metres, convert to mm. Do not include any explanation, headers, or extra text — only the cut lines.`
+            }
+          ]
+        }]
+      })
+    });
+
+    const data = await resp.json();
+    const text = data.content?.filter(b => b.type === 'text').map(b => b.text).join('\n') || '';
+    const { results, errors } = parseLines(text);
+    stagedPhoto = results;
+
+    if (results.length) {
+      prev.innerHTML = `<span class="parse-ok">✓ AI found ${results.length} cut${results.length>1?'s':''}</span>` +
+        (errors.length ? ` <span class="parse-err">· ${errors.length} skipped</span>` : '') +
+        `<br><span style="color:var(--muted);font-size:11px;margin-top:4px;display:block;">${results.map(r=>`${r.len}mm ×${r.qty} ${r.label}`).join(' · ')}</span>`;
+      btn.textContent = '+ Add to Cut List';
+      btn.disabled = false;
+      btn.onclick = importPhoto;
+    } else {
+      prev.innerHTML = `<span class="parse-err">✗ AI couldn't find any cuts. Try a clearer photo.</span>`;
+      btn.textContent = '🔍 Scan with AI';
+      btn.disabled = false;
+      btn.onclick = scanPhoto;
+    }
+  } catch(err) {
+    prev.innerHTML = `<span class="parse-err">✗ Error: ${err.message}</span>`;
+    btn.textContent = '🔍 Retry';
+    btn.disabled = false;
+    btn.onclick = scanPhoto;
+  }
+}
+
+function importPhoto() {
+  addStaged(stagedPhoto);
+  document.getElementById('photoPrev').innerHTML = '';
+  document.getElementById('photoPrev').classList.remove('show');
+  document.getElementById('photoImportBtn').disabled = true;
+  document.getElementById('photoImportBtn').textContent = '+ Add to Cut List';
+  document.getElementById('photoImportBtn').onclick = importPhoto;
+  document.getElementById('photoInput').value = '';
+  stagedPhoto = [];
+  photoBase64 = '';
+}
+
+// ─── Add staged cuts to main list ────────────────────────
+function addStaged(staged) {
+  const stockLen = parseInt(document.getElementById('stockLength').value) || 6200;
+  let added = 0, skipped = 0;
+  staged.forEach(c => {
+    if (c.len > 0 && c.len <= stockLen) {
+      cuts.push({ id: cutIdCounter++, len: c.len, qty: c.qty || 1, label: c.label || `Cut ${cutIdCounter}` });
+      added++;
+    } else { skipped++; }
+  });
+  renderCutList();
+  updateRunBtn();
+  if (skipped) alert(`${added} cuts added. ${skipped} skipped (length exceeds stock bar or invalid).`);
+}
+
+// ─── Print / PDF ──────────────────────────────────────────
+function printSheet() {
+  const section = document.getElementById('stockSection').value.trim() || 'Stock';
+  const stockLen = parseInt(document.getElementById('stockLength').value) || 6200;
+  const now = new Date().toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'});
+  const kerf = parseInt(document.getElementById('kerfSelect').value);
+
+  // Rebuild bars from last optimise run (stored globally)
+  if (!lastBars || !lastBars.length) { alert('Run the optimiser first.'); return; }
+
+  const bars = lastBars;
+  const totalBars = bars.length;
+  const totalUsed = bars.reduce((s,b) => s + (stockLen - b.remaining), 0);
+  const totalWaste = totalBars * stockLen - totalUsed;
+  const efficiency = (100 - (totalWaste / (totalBars*stockLen)*100)).toFixed(1);
+  const colours = ['#f39c12','#e67e22','#e74c3c','#9b59b6','#3498db','#1abc9c','#2ecc71','#f1c40f'];
+
+  const barsHtml = bars.map((bar, i) => {
+    const wastePct = ((bar.remaining / stockLen)*100).toFixed(1);
+    let segs = '';
+    bar.cuts.forEach((cut, ci) => {
+      if (cut.kerf > 0) segs += `<div class="ps-seg-kerf" style="width:${(cut.kerf/stockLen*100).toFixed(2)}%"></div>`;
+      segs += `<div class="ps-seg-cut" style="width:${(cut.len/stockLen*100).toFixed(2)}%;background:${colours[ci%colours.length]}"></div>`;
+    });
+    if (bar.remaining > 0) segs += `<div class="ps-seg-waste" style="width:${(bar.remaining/stockLen*100).toFixed(2)}%"></div>`;
+
+    const rows = bar.cuts.map((cut,ci) =>
+      `<tr><td>${ci+1}</td><td>${escHtml(cut.label)}</td><td style="font-family:monospace">${fmt(cut.len)} mm</td></tr>`
+    ).join('');
+
+    return `<div class="ps-bar-block">
+      <div class="ps-bar-head">
+        <span>Bar ${i+1} &mdash; ${fmt(stockLen)}mm ${section}</span>
+        <span>Off-cut: ${fmt(bar.remaining)}mm (${wastePct}%)</span>
+      </div>
+      <div class="ps-bar-visual">${segs}</div>
+      <table class="ps-cuts-table">
+        <thead><tr><th>#</th><th>Label</th><th>Length</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+  }).join('');
+
+  document.getElementById('printSheet').innerHTML = `
+    <div class="ps-header">
+      <div>
+        <div class="ps-logo">WESSEX FABRICATIONS</div>
+        <div class="ps-sub">Cutting Schedule &mdash; ${escHtml(section)}</div>
+      </div>
+      <div class="ps-meta">
+        Date: ${now}<br>
+        Stock: ${fmt(stockLen)}mm lengths<br>
+        Kerf: ${kerf}mm
+      </div>
+    </div>
+    <div class="ps-summary">
+      <div class="ps-stat"><div class="ps-stat-val">${totalBars}</div><div class="ps-stat-lbl">Bars required</div></div>
+      <div class="ps-stat"><div class="ps-stat-val">${efficiency}%</div><div class="ps-stat-lbl">Efficiency</div></div>
+      <div class="ps-stat"><div class="ps-stat-val">${fmt(totalUsed)}</div><div class="ps-stat-lbl">Used (mm)</div></div>
+      <div class="ps-stat"><div class="ps-stat-val">${fmt(totalWaste)}</div><div class="ps-stat-lbl">Waste (mm)</div></div>
+    </div>
+    ${barsHtml}
+    <div class="ps-footer">
+      <span>Wessex Fabrications Ltd &mdash; Fair Oak, Hampshire</span>
+      <span>Generated: ${now}</span>
+    </div>
+  `;
+
+  window.print();
+}
+
+// ─── Helpers ──────────────────────────────────────────────
+function fmt(n) { return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+</script>
+</body>
+</html>
